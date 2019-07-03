@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, MouseEvent } from 'react';
 import { withStyles, Theme, createStyles } from '@material-ui/core/styles';
 import { Classes } from 'jss';
 const d3 = require("d3");
@@ -17,6 +17,7 @@ interface props {
   data: any;
   height: number;
   width: number;
+  change: (event: MouseEvent) => void;
 }
 
 class D3ForceNetwork extends Component<props> {
@@ -31,6 +32,7 @@ class D3ForceNetwork extends Component<props> {
   }
 
   componentWillReceiveProps(nextProps: props) {
+    d3.selectAll("svg > *").remove();
     this.chart(nextProps.data)
   }
 
@@ -46,7 +48,7 @@ class D3ForceNetwork extends Component<props> {
     this.state.simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id((d: any) => d.id))
       .force("charge", d3.forceManyBody())
-      .force("collision", d3.forceCollide(50))
+      .force("collision", d3.forceCollide((Math.random() * 10) + 40))
       .force("center", d3.forceCenter(this.props.width / 2, this.props.height / 2));
 
     this.svg
@@ -55,27 +57,69 @@ class D3ForceNetwork extends Component<props> {
     const fade = (opacity: number) => {
       return (d: any) => {
         node.style('stroke-opacity', function(this: any, o: any) {
-          const thisOpacity = isConnected(d, o) ? 1 : opacity;
+          const thisOpacity = (isConnected(d, o) && o.selected) ? 1 : (isConnected(d, o) || o.selected) ? 0.5 : opacity;
           this.setAttribute('fill-opacity', thisOpacity);
           return thisOpacity;
         });
   
-        link.style('stroke-opacity', (o: any) => (o.source === d || o.target === d ? 1 : opacity));
+        link.style('stroke-opacity', (o: any) => {
+          return (o.source === d || o.target === d) && (o.source.selected && o.target.selected) ? 1 : (o.source === d || o.target === d) || (o.source.selected && o.target.selected) ? 0.5 : opacity
+        });
   
       };
     }
 
+    const selectNode = () => {
+      return (d: any) => {
+        node.style('stroke-opacity', function(this: any, o: any) {
+          const thisOpacity = isConnected(d, o) ? 1 : o.selected ? 0.5 : 0.1;
+          this.setAttribute('fill-opacity', thisOpacity);
+          isConnected(d, o) || o.selected ? o.selected = true : o.selected = false;
+          return thisOpacity;
+        })
+        
+        link.style('stroke-opacity', (o: any) => {
+          return (o.source === d || o.target === d) && (o.source.selected && o.target.selected) ? 1 : (o.source === d || o.target === d) || (o.source.selected && o.target.selected) ? 0.5 : 0.1
+        });
+      }
+    }
+
+    const releaseNode = (d: any) => {
+      d.fx = null;
+      d.fy = null;
+      node.style('stroke-opacity', function(this: any, o: any) {
+        isConnected(d, o) || !o.selected ? o.selected = false : o.selected = true;
+        const thisOpacity = isConnected(d, o) ? 1 : o.selected ? 0.5 : 0.1;
+        this.setAttribute('fill-opacity', thisOpacity);
+        return thisOpacity;
+      })
+
+      link.style('stroke-opacity', (o: any) => {
+        return (o.source === d || o.target === d) && (o.source.selected && o.target.selected) ? 1 : (o.source === d || o.target === d) || (o.source.selected && o.target.selected) ? 0.5 : 0.1
+      });
+    }
+
+    const color = (type: string) => {
+      switch(type) {
+        case "associate of": return '#FF8838';
+        case "financier of": return '#8B8E9E';
+        case "participant in": return '#42C2FF';
+        case "took place in": return '#CC4D21';
+        case "lives in": return '#CC4D21'; 
+      }
+    }
+
     const link = this.svg.append("g")
-        .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
         .on('mouseout.fade', fade(1))
       .selectAll("line")
       .data(links)
       .join("line")
+        .attr("stroke", (d: any) => color(d.type))
         .attr("stroke-width", (d: any) => Math.sqrt(d.value));
         
     link.append("title")
-      .text((d: any) => `${d.source.id} -> ${d.target.id}: ${d.value}`);
+      .text((d: any) => `${d.source.id} ${d.type} ${d.target.id}: ${d.value}`);
 
     const node = this.svg.append("g")
         .attr("dominant-baseline", "middle")
@@ -89,16 +133,13 @@ class D3ForceNetwork extends Component<props> {
       .attr("r", 25)
       .attr("stroke", "#fff")
       .attr("stroke-width", 1)
-      .attr("fill", (d: any) => scale(d.group))
+      .attr("fill", (d: any) => scale(d.type))
       .on('mouseover.fade', fade(0.1))
-      .on('mouseout.fade', fade(1))
-      .on('click', function(this: any, d: any, i: any) {
-        d3.select(this).attr("stroke", 'blue')
-      })
-  	  .on('dblclick', this.releaseNode);
+      .on('click', selectNode())
+  	  .on('dblclick', (d: any) => releaseNode(d));
 
     node.append("title")
-      .text((d: any) => d.id);
+      .text((d: any) => `${d.id} (${d.type})`);
 
     node.append("text")
       .attr("x", 0)
@@ -138,11 +179,6 @@ class D3ForceNetwork extends Component<props> {
     return this.svg.node();
   }
 
-  releaseNode = (d: any) => {
-    d.fx = null;
-    d.fy = null;
-  }
-
   drag = (simulation: any) => {
     const dragstarted = (d: any) => {
       if (!d3.event.active) simulation.alphaTarget(0.3).restart();
@@ -177,6 +213,7 @@ class D3ForceNetwork extends Component<props> {
           :
           null
         }
+        <button onClick={this.props.change}>Change</button>
       </div>
     );
   }
