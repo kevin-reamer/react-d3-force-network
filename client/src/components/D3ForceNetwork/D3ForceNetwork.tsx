@@ -1,5 +1,5 @@
 import React, { Component, MouseEvent } from 'react';
-import { withStyles, Theme, createStyles } from '@material-ui/core/styles';
+import { withStyles, Theme, createStyles } from '@material-ui/core';
 import { Classes } from 'jss';
 const d3 = require("d3");
 
@@ -17,7 +17,6 @@ interface props {
   data: any;
   height: number;
   width: number;
-  change: (event: MouseEvent) => void;
 }
 
 class D3ForceNetwork extends Component<props> {
@@ -213,7 +212,6 @@ class D3ForceNetwork extends Component<props> {
           :
           null
         }
-        <button onClick={this.props.change}>Change</button>
       </div>
     );
   }

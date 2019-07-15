@@ -1,0 +1,7 @@
+indexes:
+
+- kind: Forms
+  properties:
+  - name: name
+  - name: version
+    direction: desc
