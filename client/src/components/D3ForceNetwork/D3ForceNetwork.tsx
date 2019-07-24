@@ -1,4 +1,4 @@
-import React, { Component, MouseEvent } from 'react';
+import React, { Component } from 'react';
 import { withStyles, Theme, createStyles } from '@material-ui/core';
 import { Classes } from 'jss';
 const d3 = require("d3");
@@ -17,6 +17,7 @@ interface props {
   data: any;
   height: number;
   width: number;
+  handleDoubleClick: Function;
 }
 
 class D3ForceNetwork extends Component<props> {
@@ -25,6 +26,7 @@ class D3ForceNetwork extends Component<props> {
   }
 
   svg: any;
+  g: any;
 
   componentDidMount() {
     this.chart(this.props.data)
@@ -36,22 +38,40 @@ class D3ForceNetwork extends Component<props> {
   }
 
   componentWillUnmount() {
-    this.state.simulation.stop()
+    if (this.state.simulation) {
+      this.state.simulation.stop()
+    }
   }
 
   chart = (data: any) => {
-    const links = data.links.map((d: any) => Object.create(d));
+    const links = data.links.map((d: any) =>  Object.create(d));
     const nodes = data.nodes.map((d: any) => Object.create(d));
     const scale = d3.scaleOrdinal(d3.schemeCategory10);
 
-    this.state.simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d: any) => d.id))
-      .force("charge", d3.forceManyBody())
-      .force("collision", d3.forceCollide((Math.random() * 10) + 40))
-      .force("center", d3.forceCenter(this.props.width / 2, this.props.height / 2));
+    this.state.
+      simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id((d: any) => d.id))
+        .force("charge", d3.forceManyBody())
+        .force("collision", d3.forceCollide((Math.random() * 10) + 30))
+        .force("center", d3.forceCenter(this.props.width / 2, this.props.height / 2))
+    
+    const zoomed = () => {
+      this.g.attr("transform", d3.event.transform);
+    };
 
     this.svg
-      .attr("viewBox", [0, 0, this.props.width, this.props.height]);
+      .attr("viewBox", [0, 0, this.props.width, this.props.height])
+
+    this.svg.append("rect")
+      .attr("width", this.props.width)
+      .attr("height", this.props.height)
+      .style("fill", "none")
+      .style("pointer-events", "all")
+      .call(d3.zoom()
+        .scaleExtent([1 / 2, 4])
+        .on("zoom", zoomed)); 
+
+    this.g = this.svg.append("g");
 
     const fade = (opacity: number) => {
       return (d: any) => {
@@ -100,27 +120,24 @@ class D3ForceNetwork extends Component<props> {
 
     const color = (type: string) => {
       switch(type) {
-        case "associate of": return '#FF8838';
-        case "financier of": return '#8B8E9E';
-        case "participant in": return '#42C2FF';
-        case "took place in": return '#CC4D21';
-        case "lives in": return '#CC4D21'; 
+        case "perpetrator": return '#FF8838';
+        case "target city": return '#8B8E9E';
       }
     }
 
-    const link = this.svg.append("g")
+    const link = this.g.append("g")
         .attr("stroke-opacity", 0.6)
         .on('mouseout.fade', fade(1))
       .selectAll("line")
       .data(links)
       .join("line")
         .attr("stroke", (d: any) => color(d.type))
-        .attr("stroke-width", (d: any) => Math.sqrt(d.value));
+        .attr("stroke-width", (d: any) => d.value + 1);
         
     link.append("title")
       .text((d: any) => `${d.source.id} ${d.type} ${d.target.id}: ${d.value}`);
 
-    const node = this.svg.append("g")
+    const node = this.g.append("g")
         .attr("dominant-baseline", "middle")
         .attr("text-anchor", "middle")
       .selectAll("g")
@@ -129,13 +146,13 @@ class D3ForceNetwork extends Component<props> {
       .call(this.drag(this.state.simulation));
 
     node.append("circle")
-      .attr("r", 25)
+      .attr("r", 20)
       .attr("stroke", "#fff")
       .attr("stroke-width", 1)
       .attr("fill", (d: any) => scale(d.type))
       .on('mouseover.fade', fade(0.1))
       .on('click', selectNode())
-  	  .on('dblclick', (d: any) => releaseNode(d));
+  	  .on('dblclick', (d: any) => this.props.handleDoubleClick(d.id));
 
     node.append("title")
       .text((d: any) => `${d.id} (${d.type})`);
@@ -148,18 +165,20 @@ class D3ForceNetwork extends Component<props> {
       .style('pointer-events', 'none')
       .text((d: any) => d.id );
 
-    this.state.simulation.on("tick", () => {
-      link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
+    if (this.state.simulation) {
+      this.state.simulation.on("tick", () => {
+        link
+          .attr("x1", (d: any) => d.source.x)
+          .attr("y1", (d: any) => d.source.y)
+          .attr("x2", (d: any) => d.target.x)
+          .attr("y2", (d: any) => d.target.y);
 
-      node
-        .attr("transform", function(d: any) {
-          return "translate(" + d.x + "," + d.y + ")";
-        })
-    });
+        node
+          .attr("transform", function(d: any) {
+            return "translate(" + d.x + "," + d.y + ")";
+          })
+      });
+    }
 
     let linkedByIndex: any = {};
     links.forEach((d: any) => {

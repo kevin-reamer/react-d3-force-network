@@ -1,7 +1,7 @@
 import { Datastore } from "@google-cloud/datastore";
 import express, { Request, Response } from "express";
 
-import { upload } from "../../controllers/datastore.controller";
+import { getNodes, getNodesBySearch, upload } from "../../controllers/datastore.controller";
 
 const router = express.Router();
 
@@ -18,6 +18,23 @@ const datastore = new Datastore({
 router.post("/v1/upload", (req: Request, res: Response) => {
   const data = req.body.data;
   upload(data, datastore)
+    .then((results: any) => {
+      res.send(results);
+    })
+    .catch(console.error);
+});
+
+router.get("/v1/getNodes", (req: Request, res: Response) => {
+  getNodes(datastore)
+    .then((results: any) => {
+      res.send(results);
+    })
+    .catch(console.error);
+});
+
+router.get("/v1/getNodesBySearch", (req: Request, res: Response) => {
+  const search = req.query.search;
+  getNodesBySearch(search, datastore)
     .then((results: any) => {
       res.send(results);
     })

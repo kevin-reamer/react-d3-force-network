@@ -2,10 +2,10 @@ import { Datastore } from "@google-cloud/datastore";
 
 export const upload = async (data: any, datastore: Datastore) => {
   // The kind for the new entity
-  const kind = "FNTNodes";
+  const kind = "TerrorNetwork";
 
   // The Cloud Datastore key for the new entity
-  const taskKey = datastore.key([kind]);
+  const taskKey = datastore.key([kind, data.i]);
 
   // Prepares the new entity
   const task = {
@@ -15,5 +15,89 @@ export const upload = async (data: any, datastore: Datastore) => {
 
   // Saves the entity
   await datastore.save(task);
-  console.log(`Saved ${data.id}`);
+  console.log(`Saved ${data.i}`);
+};
+
+export const getNodes = async (datastore: Datastore) => {
+  const queryNodes = datastore.createQuery("TerrorNetwork")
+    .limit(100);
+
+  const [nodes] = await datastore.runQuery(queryNodes);
+
+  return transformNodes(nodes);
+};
+
+export const getNodesBySearch = async (search: string, datastore: Datastore) => {
+  const queryNodes = datastore.createQuery("TerrorNetwork")
+    .filter("l.n", "=", search)
+    .limit(200);
+
+  const [nodes] = await datastore.runQuery(queryNodes);
+
+  return transformNodes(nodes);
+};
+
+const transformNodes = (nodes: any) => {
+  const data: { nodes: any[], links: any[] } = {
+    nodes: [],
+    links: []
+  };
+
+  const nodeTypes = [
+    "Biological Agent",
+    "Bombing",
+    "Business",
+    "Chemical Agent",
+    "Explosives",
+    "Fire or Firebomb",
+    "Firearms",
+    "Knives & sharp objects",
+    "Other",
+    "Remote-detonated explosive",
+    "Telecommunication",
+    "Unknown",
+  ];
+
+  const nodeLinkTypes = [
+    "Terrorist Group",
+    "City"
+  ];
+
+  const linkTypes = [
+    "perpetrator",
+    "target city"
+  ];
+
+  const terrorGroups: string[] = [];
+  const cities: string[] = [];
+
+  nodes.forEach((node: any) => {
+    let noDuplicate = false;
+    data.nodes.push({id: node.i, description: node.d, type: nodeTypes[node.t], fa: node.fa, in: node.in});
+    if (node.l) {
+      node.l.forEach((link: any) => {
+        data.links.push({source: node.i, target: link.n, type: linkTypes[link.t], value: node.fa, in: node.in});
+
+        // check for terror group duplicates
+        if (link.t === 0) {
+          noDuplicate = !terrorGroups.includes(link.n);
+          if (noDuplicate) {
+            terrorGroups.push(link.n);
+          }
+        } else {
+          noDuplicate = !cities.includes(link.n);
+          if (noDuplicate) {
+            cities.push(link.n);
+          }
+        }
+
+        if (noDuplicate) {
+          data.nodes.push({id: link.n, description: link.n, type: nodeLinkTypes[link.t]});
+        }
+      });
+    }
+
+  });
+
+  return data;
 };
