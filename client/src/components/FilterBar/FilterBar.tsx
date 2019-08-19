@@ -17,8 +17,11 @@ interface props {
 
 class SearchBar extends Component<props> {
   state = {
-    to: new Date(),
-    from: new Date(),
+    to: new Date("12/31/2009"),
+    from: new Date("02/09/1968"),
+    minDate: new Date("02/09/1968"),
+    maxDate: new Date("12/31/2009"),
+    format: "dd MMM yyyy",
     fatalities: 0,
     injuries: 0
   }
@@ -46,11 +49,11 @@ class SearchBar extends Component<props> {
     return (
       <section className={classes.root}>
         <MuiPickersUtilsProvider utils={DateFnsUtils}>
-          <DatePicker label="From" value={this.state.to} onChange={this.handleDateTo} />
-          <DatePicker label="To" value={this.state.from} onChange={this.handleDateFrom} />
+          <DatePicker label="From" format={this.state.format} minDate={this.state.minDate} maxDate={this.state.maxDate} value={this.state.from} onChange={this.handleDateFrom} />
+          <DatePicker label="To" format={this.state.format} minDate={this.state.minDate} maxDate={this.state.maxDate} value={this.state.to} onChange={this.handleDateTo} />
         </MuiPickersUtilsProvider>
-        <TextField label="Fatalities" type="number" onChange={this.handleChange("fatalities")} />
-        <TextField label="Injuries" type="number" onChange={this.handleChange("injuries")} />
+        <TextField label="Fatalities" type="number" inputProps={{min: 0}} onChange={this.handleChange("fatalities")} />
+        <TextField label="Injuries" type="number" inputProps={{min: 0}} onChange={this.handleChange("injuries")} />
         <Button onClick={() => this.props.handleFilter(this.state)}>Filter</Button>
       </section>
     )

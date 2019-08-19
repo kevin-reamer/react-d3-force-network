@@ -20,7 +20,8 @@ export const upload = async (data: any, datastore: Datastore) => {
 
 export const getNodes = async (datastore: Datastore) => {
   const queryNodes = datastore.createQuery("TerrorNetwork")
-    .limit(100);
+    .filter("l.n", "=", "Tikrit, Iraq")
+    .limit(1500);
 
   const [nodes] = await datastore.runQuery(queryNodes);
 
@@ -30,7 +31,7 @@ export const getNodes = async (datastore: Datastore) => {
 export const getNodesBySearch = async (search: string, datastore: Datastore) => {
   const queryNodes = datastore.createQuery("TerrorNetwork")
     .filter("l.n", "=", search)
-    .limit(200);
+    .limit(500);
 
   const [nodes] = await datastore.runQuery(queryNodes);
 
@@ -73,10 +74,10 @@ const transformNodes = (nodes: any) => {
 
   nodes.forEach((node: any) => {
     let noDuplicate = false;
-    data.nodes.push({id: node.i, description: node.d, type: nodeTypes[node.t], fa: node.fa, in: node.in});
+    data.nodes.push({id: node.i, date: node.d, type: nodeTypes[node.t], fa: node.fa, in: node.in});
     if (node.l) {
       node.l.forEach((link: any) => {
-        data.links.push({source: node.i, target: link.n, type: linkTypes[link.t], value: node.fa, in: node.in});
+        data.links.push({source: node.i, target: link.n, type: linkTypes[link.t], date: node.d, fa: node.fa, in: node.in});
 
         // check for terror group duplicates
         if (link.t === 0) {

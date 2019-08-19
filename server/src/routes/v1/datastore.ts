@@ -6,7 +6,7 @@ import { getNodes, getNodesBySearch, upload } from "../../controllers/datastore.
 const router = express.Router();
 
 // Your Google Cloud Platform project ID
-const projectId = process.env.GCLOUD_PROJECT;
+const projectId = process.env.GOOGLE_CLOUD_PROJECT;
 const keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 // Creates a client

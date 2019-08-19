@@ -1,10 +1,11 @@
-import React, { Component, SyntheticEvent } from 'react';
+import React, { Component } from 'react';
 import { withStyles, Theme, createStyles, TextField } from '@material-ui/core';
 import { Classes } from 'jss';
 
 const styles = (theme: Theme) => createStyles({
   root: {
-    padding: theme.spacing(2)
+    padding: theme.spacing(2),
+    width: `calc(100% - ${theme.spacing(4)}px)`
   }
 });
 
