@@ -1,6 +1,6 @@
 import { dateRange } from './dates';
 import * as d3 from "d3";
-import { differenceInMonths } from 'date-fns'
+import { differenceInMonths, getQuarter, startOfQuarter, startOfYear } from 'date-fns'
 
 export const processMetrics = (metrics: any, nodeData: any, reset: boolean) => {
   if (reset) {
@@ -22,16 +22,16 @@ export const processMetrics = (metrics: any, nodeData: any, reset: boolean) => {
   return metrics;
 }
 
-export const processTrends = (trends: any, data: any, reset: boolean) => {
+export const processTrends = (trends: any, data: any, reset: boolean, type: string) => {
   if (reset) {
     trends = [
-      { title: "Deadliest Attack Type", value: "", metric: 0},
-      { title: "Most Common Attack Type", value: "", metric: 0},
-      { title: "Increasing Attack Type (4 years)", value: "", metric: 0},
-      { title: "Most Targetted Area (4 years)", value: "", metric: 0},
-      { title: "Increasing Threat Area (4 years)", value: "", metric: 0},
-      { title: "Most Active Group (4 years)", value: "", metric: 0},
-      { title: "Increasing Threat Group (4 years)", value: "", metric: 0},
+      { title: "Deadliest Attack Type", subtitle: "fatalities", value: "", metric: 0},
+      { title: "Most Common Attack Type", subtitle: "attacks", value: "", metric: 0},
+      { title: "Increasing Attack Type", subtitle: "attacks, 4 years", value: "", metric: 0},
+      { title: "Most Targetted", subtitle: "attacks, 4 years", value: "", metric: 0},
+      { title: "Increasing Threat Area", subtitle: "fatalities, 4 years", value: "", metric: 0},
+      { title: "Most Active Group", subtitle: "attacks, 4 years", value: "", metric: 0},
+      { title: "Increasing Threat Group", subtitle: "fatalities, 4 years", value: "", metric: 0},
     ]
   }
 
@@ -42,6 +42,15 @@ export const processTrends = (trends: any, data: any, reset: boolean) => {
   let increaseThreatArea: any[] = [];
   let mostActiveGroup: any[] = [];
   let increaseThreatGroup: any[] = [];
+
+  let thisPeriodGroups: any[] = [];
+  let lastPeriodGroups: any[] = [];
+  let thisPeriodCities: any[] = [];
+  let lastPeriodCities: any[] = [];
+  let thisPeriodAttacks: any[] = [];
+  let lastPeriodAttacks: any[] = [];
+
+  const period = 48;
 
   data.nodes.forEach((node: any) => {
     if (node.type !== "City" && node.type !== "Terrorist Group") {
@@ -59,11 +68,21 @@ export const processTrends = (trends: any, data: any, reset: boolean) => {
       else {
         typeCommon.find(n => n.value === node.type).metric++;
       }
+
+      const periodDifference = differenceInMonths(new Date("12/31/2009"), new Date(node.date))
+      if (periodDifference <= period) {
+        thisPeriodAttacks.push(node);
+      }
+      else if (periodDifference >= period && periodDifference <= period * 2) {
+        lastPeriodAttacks.push(node);
+      }
     }
   })
   data.links.forEach((link: any) => {
+    const periodDifference = differenceInMonths(new Date("12/31/2009"), new Date(link.date))
     if (link.type === "target city") {
-      if (differenceInMonths(new Date("12/31/2009"), new Date(link.date)) <= 48) {
+      if (periodDifference <= period) {
+        thisPeriodCities.push(link)
         //most targetted
         if (mostTargettedArea.find(n => n.value === link.target) === undefined) {
           mostTargettedArea.push({value: link.target, metric: 1});
@@ -72,9 +91,13 @@ export const processTrends = (trends: any, data: any, reset: boolean) => {
           mostTargettedArea.find(n => n.value === link.target).metric++;
         }
       }
+      else if (periodDifference >= period && periodDifference <= period * 2) {
+        lastPeriodCities.push(link)
+      }
     }
     else if (link.type === "perpetrator") {
-      if (differenceInMonths(new Date("12/31/2009"), new Date(link.date)) <= 48) {
+      if (periodDifference <= period) {
+        thisPeriodGroups.push(link);
         //most active
         if (mostActiveGroup.find(n => n.value === link.target) === undefined) {
           mostActiveGroup.push({value: link.target, metric: 1});
@@ -83,13 +106,55 @@ export const processTrends = (trends: any, data: any, reset: boolean) => {
           mostActiveGroup.find(n => n.value === link.target).metric++;
         }
       }
+      else if (periodDifference >= period && periodDifference <= period * 2) {
+        lastPeriodGroups.push(link)
+      }
     }
   })
-  
+
+  const lastPeriodThreatGroups = groupByProperty(lastPeriodGroups, "target")
+  const thisPeriodThreatGroups = groupByProperty(thisPeriodGroups, "target")
+  for (let property in thisPeriodThreatGroups) {
+    increaseThreatGroup.push({
+      value: property, 
+      metric: calcChange(
+        sumProperty(thisPeriodThreatGroups[property], "fa"), 
+        sumProperty(lastPeriodThreatGroups[property], "fa")
+      )
+    });
+  }
+
+  const lastPeriodThreatArea = groupByProperty(lastPeriodCities, "target")
+  const thisPeriodThreatArea = groupByProperty(thisPeriodCities, "target")
+  for (let property in thisPeriodThreatArea) {
+    increaseThreatArea.push({
+      value: property, 
+      metric: calcChange(
+        sumProperty(thisPeriodThreatArea[property], "fa"), 
+        sumProperty(lastPeriodThreatArea[property], "fa")
+      )
+    });
+  }
+
+  const lastPeriodAttacksType = groupByProperty(lastPeriodAttacks, "type")
+  const thisPeriodAttacksType = groupByProperty(thisPeriodAttacks, "type")
+  for (let property in thisPeriodAttacksType) {
+    increaseTrendType.push({
+      value: property, 
+      metric: calcChange(
+        sumProperty(thisPeriodAttacksType[property], "fa"), 
+        sumProperty(lastPeriodAttacksType[property], "fa")
+      )
+    });
+  }
+
   trends = getMetric(0, typeDeadly, trends);
   trends = getMetric(1, typeCommon, trends);
+  trends = getMetric(2, increaseTrendType, trends);
   trends = getMetric(3, mostTargettedArea, trends);
+  trends = getMetric(4, increaseThreatArea, trends);
   trends = getMetric(5, mostActiveGroup, trends);
+  trends = getMetric(6, increaseThreatGroup, trends);
 
   console.log(trends)
 
@@ -107,26 +172,86 @@ const getMetric = (index: number, values: any[], trends: any[]) => {
   return trends;
 }
 
-export const processBarData = (nodeData: any) => {
-  const fatalities = d3.nest<any, number>()
+const sumProperty = (arr: any[], property: string) => {
+  let sum = 0;
+  if (arr !== undefined) {
+    arr.forEach(item => {
+      sum += item[property];
+    })
+  }
+  return sum;
+}
+
+const groupData = (data: any[], type: string) => {
+  return d3.nest<any, number>()
     .key((d: any) => {
       let date = new Date(d.date);
+      if (type === "quarter") { date = startOfQuarter(date) }
+      return `${date.getMonth()+1}/1/${date.getFullYear()}` 
+    })
+    .rollup((d: any) => { 
+      return d3.sum(d, (g: any) => g.fa);
+    }).entries(data);
+}
+
+var groupByProperty = function(arr: any[], key: string) {
+  return arr.reduce(function(rv: any, x) {
+    (rv[x[key]] = rv[x[key]] || []).push(x);
+    return rv;
+  }, {});
+};
+
+const calcChange = (thisPeriod: number, lastPeriod: number) => {
+  const change = thisPeriod - lastPeriod;
+  return change;
+}
+
+export const processBarData = (nodeData: any) => {
+  nodeData.sort((a: any, b: any) => {
+    return new Date(a.date).valueOf() - new Date(b.date).valueOf()
+  })
+  const allMonths = dateRange(nodeData[0].date, nodeData[nodeData.length - 1].date, "month");
+  let allQuarters: Date[] | undefined = undefined;
+  let allYears: Date[] | undefined = undefined;
+
+  let fatalities: any[] = [];
+  let incidents: any[] = [];
+  let data: any[] = [];
+  let type: string = "";
+
+  if (allMonths !== undefined && allMonths.length > 60) {
+    type = "quarter"
+    allQuarters = dateRange(nodeData[0].date, nodeData[nodeData.length - 1].date, "quarter");
+    if (allQuarters !== undefined && allQuarters.length > 60) {
+      type = "year"
+      allYears = dateRange(nodeData[0].date, nodeData[nodeData.length - 1].date, "year");
+    }
+  }
+  else {
+    type = "month"
+  }
+
+  fatalities = d3.nest<any, number>()
+    .key((d: any) => {
+      let date = new Date(d.date);
+      if (type === "quarter") { date = startOfQuarter(date) }
+      else if (type === "year") { date = startOfYear(date) }
       return `${date.getMonth()+1}/1/${date.getFullYear()}` 
     })
     .rollup((d: any) => { 
       return d3.sum(d, (g: any) => g.fa);
     }).entries(nodeData);
 
-  const incidents = d3.nest<any, number>()
+  incidents = d3.nest<any, number>()
     .key((d: any) => {
       let date = new Date(d.date);
+      if (type === "quarter") { date = startOfQuarter(date) }
+      else if (type === "year") { date = startOfYear(date) }
       return `${date.getMonth()+1}/1/${date.getFullYear()}` 
     })
     .rollup((d: any) => { 
       return d3.sum(d, (g: any) => 1);
     }).entries(nodeData);
-
-  let data: any[] = [];
   
   fatalities.forEach((f: any) => {
     if (f.key !== "NaN/1/NaN") {
@@ -136,6 +261,7 @@ export const processBarData = (nodeData: any) => {
       if (incident !== undefined && incident.value) {
         data.push({
           date: f.key,
+          type: type,
           values: [
             {
               type: "Fatalities",
@@ -152,24 +278,27 @@ export const processBarData = (nodeData: any) => {
   })
 
   //add in missing months
-  const allMonths = dateRange(data[0].date, data[data.length - 1].date, "month");
-  if (allMonths !== undefined) {
+  if (allMonths !== undefined && type === "month") {
     allMonths.forEach(month => {
-      let exists = data.findIndex(d => new Date(d.date).getTime() === month.getTime()) > -1;
+      const exists = data.findIndex(d => new Date(d.date).getTime() === month.getTime()) > -1;
       if (!exists) {
-        data.push({
-          date: `${month.getMonth()+1}/1/${month.getFullYear()}`,
-          values: [
-            {
-              type: "Fatalities",
-              value: 0
-            },
-            {
-              type: "Incidents",
-              value: 0
-            }
-          ]
-        })
+        data.push(addEmpty(month, "month"))
+      }
+    })
+  }
+  else if (allQuarters !== undefined && type === "quarter") {
+    allQuarters.forEach(quarter => {
+      const exists = data.findIndex(d => new Date(d.date).getTime() === startOfQuarter(quarter).getTime()) > -1;
+      if (!exists) {
+        data.push(addEmpty(quarter, "quarter"))
+      }
+    })
+  }
+  else if (allYears !== undefined && type === "year") {
+    allYears.forEach(year => {
+      const exists = data.findIndex(d => new Date(d.date).getTime() === startOfYear(year).getTime()) > -1;
+      if (!exists) {
+        data.push(addEmpty(year, "year"))
       }
     })
   }
@@ -195,4 +324,21 @@ export const processBarData = (nodeData: any) => {
   })
 
   return data;
+}
+
+const addEmpty = (date: any, type: string) => {
+  return {
+    date: `${date.getMonth()+1}/1/${date.getFullYear()}`,
+    type: type,
+    values: [
+      {
+        type: "Fatalities",
+        value: 0
+      },
+      {
+        type: "Incidents",
+        value: 0
+      }
+    ]
+  }
 }

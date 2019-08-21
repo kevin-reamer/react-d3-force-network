@@ -13,47 +13,30 @@ const styles = (theme: Theme) => createStyles({
 interface props {
   classes: Classes;
   handleFilter: Function;
+  to: Date;
+  from: Date;
+  fatalities: number;
+  injuries: number;
+  handleChange: Function;
 }
 
 class SearchBar extends Component<props> {
   state = {
-    to: new Date("12/31/2009"),
-    from: new Date("02/09/1968"),
     minDate: new Date("02/09/1968"),
     maxDate: new Date("12/31/2009"),
-    format: "dd MMM yyyy",
-    fatalities: 0,
-    injuries: 0
-  }
-
-  handleDateTo = (date: any) => {
-    this.setState({
-      to: date
-    })
-  }
-
-  handleDateFrom = (date: any) => {
-    this.setState({
-      from: date
-    })
-  }
-
-  handleChange = (type: string) => (event: any) => {
-    this.setState({
-      [type]: event.target.value
-    })
+    format: "dd MMM yyyy"
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, to, from, handleChange } = this.props;
     return (
       <section className={classes.root}>
         <MuiPickersUtilsProvider utils={DateFnsUtils}>
-          <DatePicker label="From" format={this.state.format} minDate={this.state.minDate} maxDate={this.state.maxDate} value={this.state.from} onChange={this.handleDateFrom} />
-          <DatePicker label="To" format={this.state.format} minDate={this.state.minDate} maxDate={this.state.maxDate} value={this.state.to} onChange={this.handleDateTo} />
+          <DatePicker label="From" format={this.state.format} minDate={this.state.minDate} maxDate={this.state.maxDate} value={from} onChange={handleChange("from")} />
+          <DatePicker label="To" format={this.state.format} minDate={this.state.minDate} maxDate={this.state.maxDate} value={to} onChange={handleChange("to")} />
         </MuiPickersUtilsProvider>
-        <TextField label="Fatalities" type="number" inputProps={{min: 0}} onChange={this.handleChange("fatalities")} />
-        <TextField label="Injuries" type="number" inputProps={{min: 0}} onChange={this.handleChange("injuries")} />
+        <TextField label="Fatalities" type="number" inputProps={{min: 0}} onChange={handleChange("fatalities")} />
+        <TextField label="Injuries" type="number" inputProps={{min: 0}} onChange={handleChange("injuries")} />
         <Button onClick={() => this.props.handleFilter(this.state)}>Filter</Button>
       </section>
     )

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { withStyles, Theme, createStyles } from '@material-ui/core';
 import { Classes } from 'jss';
 import * as d3 from "d3";
+import { getQuarter } from "date-fns";
 
 const styles = (theme: Theme) => createStyles({
   root: {
@@ -19,6 +20,7 @@ const styles = (theme: Theme) => createStyles({
 interface props {
   classes: Classes;
   data: any;
+  handleClickBar: any;
 }
 
 class D3GroupedBar extends Component<props> {
@@ -58,8 +60,17 @@ class D3GroupedBar extends Component<props> {
     this.y = d3.scaleLinear().range([this.state.height, 0]);
 
     this.xAxis = d3.axisBottom(this.x0)
-      .tickFormat(d3.timeFormat("%b %Y") as (domainValue: d3.AxisDomain, index: number) => string);
-
+      .tickFormat(function(d) {
+        switch(data[0].type) {
+          case "month":
+            return d3.timeFormat("%b %Y")(d as Date)
+          case "quarter":
+            return `Q${getQuarter(d as Date)} ${(d as Date).getFullYear()}`
+          case "year":
+            return (d as Date).getFullYear()
+        }
+      } as (domainValue: d3.AxisDomain, index: number) => string)
+      
     this.yAxis = d3.axisLeft(this.y) 
       .ticks(10);
 
@@ -100,7 +111,16 @@ class D3GroupedBar extends Component<props> {
         .data([data])
         .style("fill", "none")
         .style("stroke", (d: any) => this.color(category))
-        .attr("d", valueline);
+        .attr("d", valueline)
+        .call(function(this: any, path: any) {
+          path.transition()
+              .duration(4000)
+              .attrTween("stroke-dasharray", function(this: any) {
+                const l = this.getTotalLength(),
+                    i = d3.interpolateString("0," + l, l + "," + l);
+                return function(t: any) { return i(t) };
+              });
+        });
     })
 
     this.g.append("g")
@@ -132,7 +152,8 @@ class D3GroupedBar extends Component<props> {
       .data(data)
       .enter().append("g")
         .attr("class", "g")
-        .attr("transform", (d: any) => "translate(" + this.x0(d.date) + ",0)");
+        .attr("transform", (d: any) => "translate(" + this.x0(d.date) + ",0)")
+        .on("click", (d: any) => this.props.handleClickBar(d.date));
 
     slice.selectAll("rect")
       .data((d: any) => d.values)
@@ -141,10 +162,15 @@ class D3GroupedBar extends Component<props> {
         .attr("x", (d: any) => this.x1(d.type))
         .style("pointer-events", "auto")
         .style("fill", (d: any) => this.color(d.type))
+        .style("cursor", "pointer")
         .attr("y", (d: any) => this.y(0))
         .attr("height", (d: any) => this.state.height - this.y(0))
-        .on('mouseover', this.showTip)
-        .on('mouseout', this.hideTip);
+        .on('mouseover', function(this: any) {
+          d3.select(this.parentNode).selectAll("text").style("fill", (d: any) => d.type === "Fatalities" ? "#D94D1A" : "#323E40")
+        })
+        .on('mouseout', function(this: any) {
+          d3.select(this.parentNode).selectAll("text").style("fill", "none")
+        });
 
     slice.selectAll("rect")
       .transition()
@@ -162,19 +188,10 @@ class D3GroupedBar extends Component<props> {
         .attr("x", (d: any) => d.type === "Fatalities" ? this.x0.bandwidth() / 4 : this.x0.bandwidth() / 1.3)
         .attr("y", (d: any) => this.y(d.value) - 11)
         .attr("dy", ".75em")
-        .style("fill", (d: any) => this.color(d.type))
-        .style("font-size", "10px")
+        .style("fill", "none")
+        .style("font-size", "12px")
         .style("text-anchor", "middle")
         .text((d: any) => d.value > 0 ? d.value : "");
-      
-  }
-
-  showTip = (d: any) => {
-    
-  }
-
-  hideTip = () => {
-
   }
 
   legend = () => {

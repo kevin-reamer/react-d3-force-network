@@ -11,18 +11,11 @@ export const upload = async (entity: any) => {
   .catch(console.error);
 }
 
-export const getNodes = async () => {
-  return await axios.get("http://localhost:3001/api/datastore/v1/getNodes")
-  .then((response: AxiosResponse<any>) => {
-    return response;
-  })
-  .catch(console.error);
-}
-
-export const getNodesBySearch = async (search: string) => {
+export const getNodesBySearch = async (search: string, filters: any) => {
   const config: AxiosRequestConfig = {
     params: {
-      search
+      search,
+      filters
     }
   }
   return await axios.get("http://localhost:3001/api/datastore/v1/getNodesBySearch", config)
