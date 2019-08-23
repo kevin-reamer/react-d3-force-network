@@ -1,10 +1,15 @@
 {
-  "short_name": "D3 Force Network",
-  "name": "D3 Force Network Chart",
+  "short_name": "Intersect",
+  "name": "Intersect",
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "favicon-96x96.png",
+      "sizes": "96x96",
       "type": "image/x-icon"
     }
   ],

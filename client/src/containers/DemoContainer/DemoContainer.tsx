@@ -112,7 +112,6 @@ class DemoContainer extends Component<any> {
       injuries: this.state.injuries
     }).then((response: any) => {
       this.setState((state: any) => {
-        console.log(response.data)
         const newNodes = this.diffNodes(response.data.nodes, state.data.nodes)
         const newLinks = this.diffLinks(response.data.links, state.data.links)
 

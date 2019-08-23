@@ -60,7 +60,6 @@ export default class BarData {
         return `${date.getMonth()+1}/1/${date.getFullYear()}` 
       })
       .rollup((d: any) => {
-        console.log(d)
         return d3.sum(d, (g: any) => {
           switch(typeof addValue) {
             case "string": return g[addValue]
@@ -74,7 +73,7 @@ export default class BarData {
   pushBars(primaryKey: string) {
     let secondaryKeys = Object.keys(this.values);
     if (secondaryKeys.length > 0) {
-      secondaryKeys.slice(1, secondaryKeys.length - 1)
+      secondaryKeys = secondaryKeys.slice(1, secondaryKeys.length)
     }
     this.values[primaryKey].forEach((f: any) => {
       if (f.key !== "NaN/1/NaN") {
@@ -155,6 +154,7 @@ export default class BarData {
   }
 
   calculateEMA() {
+    const keys = Object.keys(this.values)
     let fatalitiesEMAy = 0;
     let fatalitiesEMAt = 0;
     let incidentsEMAy = 0;

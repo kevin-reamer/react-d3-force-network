@@ -101,9 +101,8 @@ export default class Metrics {
     let tempArr: TrendMetric[] = [];
     for (let i = 0; i < this.data[this.calcProperty].length; i++) {
       const item = this.data[this.calcProperty][i];
-      const value = item.type;
-      if ((this.excludeTypes.length > 0 && this.excludedTypes.indexOf(value) < 0) ||
-        (this.includedTypes.length > 0 && this.includedTypes.indexOf(value) >= 0)) {
+      if ((this.excludedTypes.length > 0 && this.excludedTypes.indexOf(item.type) < 0) ||
+        (this.includedTypes.length > 0 && this.includedTypes.indexOf(item.type) >= 0)) {
         const periodDifference = differenceInMonths(endDate, new Date(item.date))
         if (periodDifference <= this.period) {
           thisPeriod.push(item);
