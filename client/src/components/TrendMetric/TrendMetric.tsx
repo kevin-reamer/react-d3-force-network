@@ -4,7 +4,8 @@ import { Classes } from 'jss';
 
 const styles = (theme: Theme) => createStyles({
   root: {
-    textAlign: "right"
+    textAlign: "right",
+    zIndex: 100
   },
   title: {
     fontSize: 12,

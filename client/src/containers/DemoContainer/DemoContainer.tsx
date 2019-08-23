@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import D3ForceNetwork from '../../components/D3ForceNetwork/D3ForceNetwork';
 import D3GroupedBar from '../../components/D3GroupedBar/D3GroupedBar';
+import D3WorldMap from '../../components/D3WorldMap/D3WorldMap';
 import { getNodesBySearch } from '../../services/datastore';
 import { processBarData, processMetrics, processTrends } from '../../services/insights';
 import SearchBar from '../../components/SearchBar/SearchBar';
@@ -8,7 +9,7 @@ import FilterBar from '../../components/FilterBar/FilterBar';
 import NumberMetric from '../../components/NumberMetric/NumberMetric';
 import TrendMetric from '../../components/TrendMetric/TrendMetric';
 import { withStyles, Theme, createStyles } from '@material-ui/core';
-import { lastDayOfMonth } from 'date-fns';
+import { lastDayOfMonth, lastDayOfQuarter, lastDayOfYear } from 'date-fns';
 
 const styles = (theme: Theme) => createStyles({
   container: {
@@ -58,22 +59,27 @@ class DemoContainer extends Component<any> {
     to: new Date("12/31/2009"),
     from: new Date("02/09/1968"),
     fatalities: 0,
-    injuries: 0
+    injuries: 0,
+    search: ""
   }
 
   componentDidMount() {
-    getNodesBySearch("Tikrit, Iraq", {
+    const search = "Kabul, Afghanistan";
+    getNodesBySearch(search, {
+      from: new Date("09/10/2001"),
       to: this.state.to,
-      from: this.state.from,
       fatalities: this.state.fatalities,
       injuries: this.state.injuries
     }).then((response: any) => {
-      this.setState({
-        data: response.data,
-        metrics: processMetrics(this.state.metrics, response.data.nodes, false),
-        trends: processTrends(this.state.trends, response.data, false, "month"),
-        loaded: true
-      })
+      if (response.data) {
+        this.setState({
+          data: response.data,
+          search: search,
+          metrics: processMetrics(this.state.metrics, response.data.nodes, false),
+          trends: processTrends(this.state.trends, response.data, false, 48),
+          loaded: true
+        })
+      }
     })
   }
 
@@ -86,8 +92,9 @@ class DemoContainer extends Component<any> {
     }).then((response: any) => {
       this.setState({
         data: response.data,
+        search: search,
         metrics: processMetrics(this.state.metrics, response.data.nodes, true),
-        trends: processTrends(this.state.trends, response.data, true, "month"),
+        trends: processTrends(this.state.trends, response.data, true, 48),
         loaded: false
       }, () => {
         this.setState({
@@ -105,23 +112,28 @@ class DemoContainer extends Component<any> {
       injuries: this.state.injuries
     }).then((response: any) => {
       this.setState((state: any) => {
+        console.log(response.data)
         const newNodes = this.diffNodes(response.data.nodes, state.data.nodes)
         const newLinks = this.diffLinks(response.data.links, state.data.links)
 
         const mergeNodes = this.mergeArrays(state.data.nodes, response.data.nodes)
         const mergeLinks = this.mergeArrays(state.data.links, response.data.links)
 
+        const mergeData = { nodes: mergeNodes, links: mergeLinks }
+
+
         return {
           data: {
             nodes: mergeNodes,
             links: mergeLinks
           },
+          search: search,
           additions: {
             nodes: newNodes,
             links: newLinks
           },
-          metrics: processMetrics(this.state.metrics, response.data.nodes, false),
-          trends: processTrends(this.state.trends, response.data, false, "month")
+          metrics: processMetrics(this.state.metrics, mergeNodes, false),
+          trends: processTrends(this.state.trends, mergeData, false, 48)
         }
       })
     })
@@ -210,17 +222,17 @@ class DemoContainer extends Component<any> {
     })
   }
 
-  handleClickBar = (date: Date) => {
+  handleClickBar = (date: Date, type: string) => {
+    let to = new Date();
+    switch(type) {
+      case "month": to = lastDayOfMonth(date); break;
+      case "quarter": to = lastDayOfQuarter(date); break;
+      case "year": to = lastDayOfYear(date); break;
+    }
     this.setState({
       from: new Date(`${date.getMonth()+1}/01/${date.getFullYear()}`),
-      to: lastDayOfMonth(date)
-    })
-    this.handleFilter({
-      to: this.state.to,
-      from: this.state.from,
-      fatalities: this.state.fatalities,
-      injuries: this.state.injuries
-    })
+      to: to
+    }, () => this.handleSearch(this.state.search))
   }
   
   render() {
@@ -253,6 +265,7 @@ class DemoContainer extends Component<any> {
               }
             </section>
             <D3GroupedBar data={processBarData(this.state.data.nodes)} handleClickBar={this.handleClickBar} />
+            <D3WorldMap data={this.state.data.nodes} />
           </Fragment>
           :
           null

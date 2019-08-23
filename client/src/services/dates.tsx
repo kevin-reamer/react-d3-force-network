@@ -7,21 +7,41 @@ export function dateRange(start: string, end: string, interval: string) {
 
   if (interval === "day") {
     const days = differenceInDays(endDate, startDate);  
-    return [...Array(days+1).keys()].map((i) => addDays(startDate, i));
+      if (days > 0) {
+        return [...Array(days+1).keys()].map((i) => addDays(startDate, i));
+      }
+      else {
+        return []
+      }
   }
 
   if (interval === "month") {
     const months = differenceInMonths(endDate, startDate);
-    return [...Array(months+1).keys()].map((i) => addMonths(startDate, i));
+    if (months > 0) {
+      return [...Array(months+1).keys()].map((i) => addMonths(startDate, i));
+    }
+    else {
+      return []
+    }
   }
 
   if (interval === "quarter") {
     const quarters = differenceInQuarters(endDate, startDate);
-    return [...Array(quarters+1).keys()].map((i) => addQuarters(startDate, i));
+    if (quarters > 0) {
+      return [...Array(quarters+1).keys()].map((i) => addQuarters(startDate, i));
+    }
+    else {
+      return []
+    }
   }
 
   if (interval === "year") {
     const years = differenceInYears(endDate, startDate);
-    return [...Array(years+1).keys()].map((i) => addYears(startDate, i));
+    if (years > 0) {
+      return [...Array(years+1).keys()].map((i) => addYears(startDate, i));
+    }
+    else {
+      return []
+    }
   }
 }

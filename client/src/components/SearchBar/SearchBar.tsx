@@ -16,7 +16,7 @@ interface props {
 
 class SearchBar extends Component<props> {
   state = {
-    search: ""
+    search: "Kabul, Afghanistan"
   }
 
   handleSearchChange = (event: any) => {
@@ -38,6 +38,7 @@ class SearchBar extends Component<props> {
         className={classes.root}
         onChange={this.handleSearchChange}
         onKeyPress={this.handleSearchKeyPress}
+        defaultValue={this.state.search}
         fullWidth
         placeholder="Search"
       />

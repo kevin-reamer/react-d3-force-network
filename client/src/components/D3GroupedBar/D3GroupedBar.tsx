@@ -103,7 +103,7 @@ class D3GroupedBar extends Component<props> {
 
     categories.forEach((category: string, i: number) => {
       let valueline = d3.line()
-        .x((d: any) => this.x0(d.date))
+        .x((d: any) => this.x0(d.date) + this.x0.bandwidth() / 2)
         .y((d: any) => this.y(d.emaValues[i]))
         .curve(d3.curveMonotoneX);
 
@@ -153,7 +153,7 @@ class D3GroupedBar extends Component<props> {
       .enter().append("g")
         .attr("class", "g")
         .attr("transform", (d: any) => "translate(" + this.x0(d.date) + ",0)")
-        .on("click", (d: any) => this.props.handleClickBar(d.date));
+        .on("click", (d: any) => this.props.handleClickBar(d.date, d.type));
 
     slice.selectAll("rect")
       .data((d: any) => d.values)
